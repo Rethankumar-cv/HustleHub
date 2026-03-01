@@ -79,8 +79,14 @@ export default function GigFeedPage() {
     const [gigToReview, setGigToReview] = useState(null);
     const [submittingReview, setSubmittingReview] = useState(false);
 
+    // Semantic AI Match State
+    const [semanticMatches, setSemanticMatches] = useState([]);
+
+    // Live Activity State
+    const [liveActivity, setLiveActivity] = useState([]);
+
     // ─────────────────────────────────────────
-    // FETCH GIGS
+    // FETCH GIGS & AI MATCHES
     // ─────────────────────────────────────────
     const fetchGigs = useCallback(async () => {
         setLoading(true);
@@ -100,8 +106,59 @@ export default function GigFeedPage() {
             });
             setRawGigs(processed);
         }
+
+        // ── KAI AI MATCHMAKING ──
+        if (tab === 'all' && profile?.profile_embedding) {
+            try {
+                // Call the PostgreSQL generic RPC function we created earlier
+                const { data: matchedGigs } = await supabase.rpc('match_gigs', {
+                    query_embedding: profile.profile_embedding,
+                    match_threshold: 0.65, // Adjust based on strictness
+                    match_count: 5
+                });
+
+                if (matchedGigs && matchedGigs.length > 0) {
+                    setSemanticMatches(matchedGigs.map(m => m.id));
+                }
+            } catch (err) {
+                console.error("Failed to fetch semantic matches:", err);
+            }
+        }
+
+        // ── LIVE ACTIVITY FETCH ──
+        try {
+            const { data: activityData } = await supabase
+                .from('activity_log')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(4);
+
+            if (activityData && activityData.length > 0) {
+                const userIds = [...new Set(activityData.map(a => a.user_id))];
+                const { data: usersData } = await supabase.from('users').select('id, full_name').in('id', userIds);
+                const userMap = {};
+                (usersData || []).forEach(u => userMap[u.id] = u.full_name);
+
+                const gigIds = [...new Set(activityData.filter(a => a.gig_id).map(a => a.gig_id))];
+                let gigMap = {};
+                if (gigIds.length > 0) {
+                    const { data: gigsData } = await supabase.from('gigs').select('id, title').in('id', gigIds);
+                    (gigsData || []).forEach(g => gigMap[g.id] = g.title);
+                }
+
+                const enrichedActivity = activityData.map(item => ({
+                    ...item,
+                    userName: userMap[item.user_id]?.split(' ')[0] || 'A Hustler',
+                    gigTitle: gigMap[item.gig_id] || ''
+                }));
+                setLiveActivity(enrichedActivity);
+            }
+        } catch (err) {
+            console.error("Failed to fetch live activity:", err);
+        }
+
         setLoading(false);
-    }, [tab, user.id]);
+    }, [tab, user?.id, profile?.profile_embedding]);
 
     useEffect(() => { fetchGigs(); }, [fetchGigs]);
 
@@ -145,8 +202,19 @@ export default function GigFeedPage() {
             });
         }
 
+        // AI Matches get floating priority if they aren't explicitly sorting
+        if (sortBy === 'newest' && semanticMatches.length > 0) {
+            result.sort((a, b) => {
+                const aIsMatch = semanticMatches.includes(a.id);
+                const bIsMatch = semanticMatches.includes(b.id);
+                if (aIsMatch && !bIsMatch) return -1;
+                if (!aIsMatch && bIsMatch) return 1;
+                return 0; // fallback to original sort
+            });
+        }
+
         return result;
-    }, [rawGigs, searchQuery, selectedSkills, minBudget, maxBudget, sortBy]);
+    }, [rawGigs, searchQuery, selectedSkills, minBudget, maxBudget, sortBy, semanticMatches]);
 
     // Stats
     const stats = useMemo(() => {
@@ -374,11 +442,38 @@ export default function GigFeedPage() {
             }).eq('id', workerId);
         }
 
+        const gigTitle = gigToReview.title;
+        const gigDesc = gigToReview.description;
+        const gigId = gigToReview.id;
+
         showToast('⭐ Review submitted!');
         setSubmittingReview(false);
         setReviewModalOpen(false);
         setGigToReview(null);
         await fetchGigs();
+
+        // Auto-generate Proof of Work portfolio card for the worker
+        if (rating >= 4) {
+            (async () => {
+                try {
+                    const { data, error } = await supabase.functions.invoke('kai-generate-pow', {
+                        body: { gigTitle, gigDescription: gigDesc, clientReview: reviewText }
+                    });
+
+                    if (!error && data) {
+                        await supabase.from('proof_of_work').insert({
+                            user_id: workerId,
+                            gig_id: gigId,
+                            title: data.title,
+                            summary: data.summary,
+                            skills_used: data.skills_used || []
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to generate PoW:", e);
+                }
+            })();
+        }
     };
 
     const toggleSkillFilter = (skill) => {
@@ -524,13 +619,19 @@ export default function GigFeedPage() {
                                     const isAcceptor = gig.accepted_by === user.id;
                                     const isAccepted = gig.status !== 'open';
                                     const isWorking = accepting === gig.id;
+                                    const isSemanticMatch = semanticMatches.includes(gig.id);
 
                                     return (
-                                        <div key={gig.id} className={`market-card ${isAccepted ? 'card-accepted' : ''}`}>
+                                        <div key={gig.id} className={`market-card ${isAccepted ? 'card-accepted' : ''} ${isSemanticMatch ? 'card-featured' : ''}`}>
                                             <div className="card-top">
-                                                <span className="status-badge" style={{ background: st.bg, color: st.color }}>
-                                                    {st.label}
-                                                </span>
+                                                <div className="card-badges">
+                                                    <span className="status-badge" style={{ background: st.bg, color: st.color }}>
+                                                        {st.label}
+                                                    </span>
+                                                    {isSemanticMatch && gig.status === 'open' && (
+                                                        <span className="ai-match-badge">🔥 Top Match</span>
+                                                    )}
+                                                </div>
                                                 <span className="time-posted">{timeAgo(gig.created_at)}</span>
                                             </div>
 
@@ -613,27 +714,28 @@ export default function GigFeedPage() {
                         <div className="activity-panel sticky-panel">
                             <h4 className="panel-title">⚡ Live Activity</h4>
                             <div className="activity-list">
-                                <div className="activity-item">
-                                    <div className="activity-icon">📝</div>
-                                    <div className="activity-details">
-                                        <p><strong>Alex</strong> posted a new UI design gig</p>
-                                        <span className="activity-time">2m ago</span>
+                                {liveActivity.length > 0 ? liveActivity.map(act => {
+                                    let icon = '⚡';
+                                    let text = '';
+                                    if (act.type === 'gig_posted') { icon = '📝'; text = `posted a new gig`; }
+                                    else if (act.type === 'gig_accepted') { icon = '🤝'; text = `accepted a gig`; }
+                                    else if (act.type === 'gig_completed') { icon = '✅'; text = `completed a gig`; }
+                                    else if (act.type === 'referral_joined') { icon = '👋'; text = `joined HustleHub`; }
+
+                                    return (
+                                        <div key={act.id} className="activity-item" title={act.gigTitle}>
+                                            <div className="activity-icon">{icon}</div>
+                                            <div className="activity-details">
+                                                <p><strong>{act.userName}</strong> {text}</p>
+                                                <span className="activity-time">{timeAgo(act.created_at)}</span>
+                                            </div>
+                                        </div>
+                                    )
+                                }) : (
+                                    <div className="activity-item">
+                                        <p style={{ color: '#9CA3AF', fontSize: '13px', margin: 0 }}>No recent activity.</p>
                                     </div>
-                                </div>
-                                <div className="activity-item">
-                                    <div className="activity-icon">🤝</div>
-                                    <div className="activity-details">
-                                        <p><strong>Sarah</strong> accepted a Python script gig</p>
-                                        <span className="activity-time">15m ago</span>
-                                    </div>
-                                </div>
-                                <div className="activity-item">
-                                    <div className="activity-icon">👋</div>
-                                    <div className="activity-details">
-                                        <p><strong>Michael</strong> joined HustleHub</p>
-                                        <span className="activity-time">1h ago</span>
-                                    </div>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>

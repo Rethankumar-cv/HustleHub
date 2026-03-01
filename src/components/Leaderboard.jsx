@@ -2,14 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import './Leaderboard.css';
 
-const MOCK = [
-    { rank: 1, full_name: 'Arjun Sharma', referral_code: 'ARJ123', gigs_completed: 24, referral_count: 12 },
-    { rank: 2, full_name: 'Priya Kapoor', referral_code: 'PRI456', gigs_completed: 19, referral_count: 9 },
-    { rank: 3, full_name: 'Rohit Nair', referral_code: 'ROH789', gigs_completed: 17, referral_count: 15 },
-    { rank: 4, full_name: 'Sneha Menon', referral_code: 'SNE012', gigs_completed: 14, referral_count: 8 },
-    { rank: 5, full_name: 'Aarav Joshi', referral_code: 'AAR345', gigs_completed: 11, referral_count: 6 },
-];
-
 const rankColors = ['#F59E0B', '#9CA3AF', '#D97706', '#6B7280', '#6B7280'];
 
 export default function Leaderboard() {
@@ -20,15 +12,11 @@ export default function Leaderboard() {
         const fetchLeaders = async () => {
             const { data, error } = await supabase
                 .from('users')
-                .select('id, full_name, gigs_completed, referral_count, referral_code')
-                .order('gigs_completed', { ascending: false })
-                .order('referral_count', { ascending: false })
+                .select('id, full_name, gigs_completed_count, referral_count, hustle_score')
+                .order('hustle_score', { ascending: false })
                 .limit(5);
 
-            if (error || !data || data.length === 0) {
-                // Fall back to mock data
-                setLeaders(MOCK);
-            } else {
+            if (!error && data) {
                 setLeaders(data.map((u, i) => ({ ...u, rank: i + 1 })));
             }
             setLoading(false);
@@ -89,8 +77,8 @@ export default function Leaderboard() {
                                         <span className="lb-college">{l.referral_code}</span>
                                     </div>
                                 </div>
-                                <div className="lb-col stat-col"><span className="lb-stat">{l.gigs_completed}</span></div>
-                                <div className="lb-col stat-col"><span className="lb-stat">{l.referral_count}</span></div>
+                                <div className="lb-col stat-col"><span className="lb-stat">{l.gigs_completed_count ?? 0}</span></div>
+                                <div className="lb-col stat-col"><span className="lb-stat">{l.referral_count ?? 0}</span></div>
                             </div>
                         ))}
                     </div>

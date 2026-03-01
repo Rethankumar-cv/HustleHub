@@ -27,6 +27,7 @@ export default function GigPostPage() {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [kaiLoading, setKaiLoading] = useState(false);
 
     // Scroll to top on step change
     useEffect(() => {
@@ -87,18 +88,41 @@ export default function GigPostPage() {
         setStep(2);
     };
 
-    const handleAiImprove = () => {
-        if (!form.description.trim()) {
-            setForm(p => ({ ...p, description: 'Looking for a talented student to help me with this project. Expected deliverables include:\n• \n• \n\nTimeline is flexible. Please have experience with relevant tools.' }));
+    const handleAiImprove = async () => {
+        // We need either a title or some description to work with
+        const roughIdea = form.description.trim() || form.title.trim();
+        if (!roughIdea) {
+            setErrors({ global: 'Please enter a rough idea in the title or description first so Kai has something to work with!' });
             return;
         }
 
-        // Mock AI Improvement
-        let improved = form.description;
-        if (!improved.includes('deliverables') && !improved.includes('•')) {
-            improved += '\n\nExpected output:\n• Clear deliverables\n• Timely communication';
+        setKaiLoading(true);
+        setErrors(p => ({ ...p, global: '' }));
+
+        try {
+            const { data, error } = await supabase.functions.invoke('kai-enhance', {
+                body: { roughIdea: roughIdea }
+            });
+
+            if (error) throw error;
+
+            if (data) {
+                setForm(p => ({
+                    ...p,
+                    title: data.title || p.title,
+                    description: data.description || p.description,
+                    budget: data.suggestedBudget?.toString() || p.budget,
+                    skill_tags: data.suggestedSkills && Array.isArray(data.suggestedSkills)
+                        ? data.suggestedSkills.slice(0, 5)
+                        : p.skill_tags
+                }));
+            }
+        } catch (err) {
+            console.error('Kai Enhance Error:', err);
+            setErrors({ global: 'Kai is currently unavailable. Please try again later.' });
+        } finally {
+            setKaiLoading(false);
         }
-        setForm(p => ({ ...p, description: improved }));
     };
 
     const handleSubmit = async () => {
@@ -241,8 +265,13 @@ export default function GigPostPage() {
                                 <div className="form-group">
                                     <div className="label-row">
                                         <label>Description</label>
-                                        <button type="button" className="btn-ai-assist" onClick={handleAiImprove}>
-                                            ✨ Improve Description
+                                        <button
+                                            type="button"
+                                            className="btn-ai-assist"
+                                            onClick={handleAiImprove}
+                                            disabled={kaiLoading}
+                                        >
+                                            {kaiLoading ? '✨ Kai is thinking...' : '✨ Draft with Kai'}
                                         </button>
                                     </div>
                                     <textarea

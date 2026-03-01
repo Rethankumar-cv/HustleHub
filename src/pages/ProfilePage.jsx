@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import ReviewModal from '../components/ReviewModal';
 import ViewReviewsModal from '../components/ViewReviewsModal';
+import PowModal from '../components/PowModal';
 import './ProfilePage.css';
 
 const SKILL_OPTIONS = [
@@ -60,6 +61,10 @@ export default function ProfilePage() {
     // View Reviews Modal
     const [viewReviewsOpen, setViewReviewsOpen] = useState(false);
 
+    // AI Proof of Work Portfolio
+    const [portfolioCards, setPortfolioCards] = useState([]);
+    const [selectedPowCard, setSelectedPowCard] = useState(null);
+
     const showToast = (msg) => {
         setToast(msg); setTimeout(() => setToast(''), 4000);
     };
@@ -70,10 +75,11 @@ export default function ProfilePage() {
 
         // IMPORTANT: Do NOT use join shorthand for accepted_by → FK points to auth.users
         // which cannot be joined via the public schema shorthand. Use plain select instead.
-        const [{ data: posted, error: postedErr }, { data: accepted, error: acceptedErr }, { data: allUsers }] = await Promise.all([
+        const [{ data: posted, error: postedErr }, { data: accepted, error: acceptedErr }, { data: allUsers }, { data: powCards }] = await Promise.all([
             supabase.from('gigs').select('*, conversations(id)').eq('posted_by', user.id).order('created_at', { ascending: false }),
             supabase.from('gigs').select('*, conversations(id)').eq('accepted_by', user.id).order('created_at', { ascending: false }),
             supabase.from('users').select('id, hustle_score, full_name').order('hustle_score', { ascending: false }),
+            supabase.from('proof_of_work').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         ]);
 
         if (postedErr) console.error('[Profile] posted gigs error:', postedErr);
@@ -104,6 +110,11 @@ export default function ProfilePage() {
             const pos = allUsers.findIndex(u => u.id === user.id);
             setRank(pos >= 0 ? pos + 1 : null);
         }
+
+        if (powCards) {
+            setPortfolioCards(powCards);
+        }
+
         setLoading(false);
     };
 
@@ -244,11 +255,38 @@ export default function ProfilePage() {
                 .eq('id', workerId);
         }
 
+        const gigTitle = gigToReview.title;
+        const gigDesc = gigToReview.description;
+        const gigId = gigToReview.id;
+
         showToast('⭐ Review submitted successfully!');
         setSubmittingReview(false);
         setReviewModalOpen(false);
         setGigToReview(null);
         await loadGigs();
+
+        // Auto-generate Proof of Work portfolio card for the worker
+        if (rating >= 4) {
+            (async () => {
+                try {
+                    const { data, error } = await supabase.functions.invoke('kai-generate-pow', {
+                        body: { gigTitle, gigDescription: gigDesc, clientReview: reviewText }
+                    });
+
+                    if (!error && data) {
+                        await supabase.from('proof_of_work').insert({
+                            user_id: workerId,
+                            gig_id: gigId,
+                            title: data.title,
+                            summary: data.summary,
+                            skills_used: data.skills_used || []
+                        });
+                    }
+                } catch (e) {
+                    console.error("Failed to generate PoW:", e);
+                }
+            })();
+        }
     };
 
     const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Hustler';
@@ -293,6 +331,7 @@ export default function ProfilePage() {
     ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
 
     const TABS = [
+        { id: 'portfolio', label: 'Portfolio', count: portfolioCards.length },
         { id: 'posted', label: 'Posted', count: postedGigs.length },
         { id: 'accepted', label: 'Accepted', count: acceptedGigs.length },
         { id: 'completed', label: 'Completed', count: completedGigs.length },
@@ -434,6 +473,39 @@ export default function ProfilePage() {
                     {loading ? (
                         <div className="pf-skeleton-grid">
                             {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="pf-skel" />)}
+                        </div>
+                    ) : activeTab === 'portfolio' ? (
+                        /* PORTFOLIO TAB */
+                        <div className="pf-gig-grid">
+                            {portfolioCards.length === 0 ? (
+                                <div className="pf-empty-state">
+                                    <span className="pf-empty-icon">🏆</span>
+                                    <p>No portfolio entries yet. Complete gigs with 4+ star ratings to generate Proof of Work cards!</p>
+                                </div>
+                            ) : (
+                                portfolioCards.map(card => (
+                                    <div
+                                        key={card.id}
+                                        className="pf-gig-card"
+                                        style={{ borderTop: '4px solid #10B981', cursor: 'pointer', transition: 'transform 0.2s' }}
+                                        onClick={() => setSelectedPowCard(card)}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                    >
+                                        <div className="pf-gig-card__top">
+                                            <span className="pf-gig-status" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', fontWeight: 600 }}>✨ Verified Work</span>
+                                            <span className="pf-gig-date">{new Date(card.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                        <h3 className="pf-gig-title">{card.title}</h3>
+                                        <p className="pf-gig-desc">{card.summary}</p>
+                                        {card.skills_used?.length > 0 && (
+                                            <div className="pf-gig-tags" style={{ marginTop: '16px' }}>
+                                                {card.skills_used.map(t => <span key={t} className="pf-gig-tag" style={{ background: '#F3F4F6', color: '#374151' }}>{t}</span>)}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     ) : activeTab === 'activity' ? (
                         /* TIMELINE */
@@ -671,6 +743,13 @@ export default function ProfilePage() {
                 onClose={() => setViewReviewsOpen(false)}
                 userId={user.id}
                 userName={displayName}
+            />
+
+            {/* View Proof of Work Modal */}
+            <PowModal
+                isOpen={!!selectedPowCard}
+                onClose={() => setSelectedPowCard(null)}
+                card={selectedPowCard}
             />
         </AppLayout>
     );

@@ -87,10 +87,10 @@
 /* Form Cards */
 .form-card {
     background: #FFFFFF;
-    border: 1px solid #F3F4F6;
-    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 24px;
     padding: var(--space-6);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
 }
 
 .form-card h3 {
@@ -155,9 +155,9 @@ label {
 .insta-input,
 .insta-textarea {
     width: 100%;
-    background: #FAFAFA;
-    border: 1.5px solid #E5E7EB;
-    border-radius: 12px;
+    background: #F9FAFB;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 16px;
     padding: 14px 16px;
     font-size: 15px;
     color: #111827;
@@ -174,8 +174,8 @@ label {
 .insta-input:focus,
 .insta-textarea:focus {
     background: #FFFFFF;
-    border-color: #4F46E5;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    border-color: #C7D2FE;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.05);
 }
 
 .insta-input::placeholder,
@@ -301,7 +301,7 @@ label {
 .skill-pill.selected {
     background: #4F46E5;
     color: #FFFFFF;
-    transform: scale(1.05);
+    transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
 }
 
@@ -430,10 +430,10 @@ label {
     position: sticky;
     top: 24px;
     background: #FFFFFF;
-    border: 1px solid #E5E7EB;
-    border-radius: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 24px;
     overflow: hidden;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
 }
 
 .preview-header {
@@ -531,10 +531,10 @@ label {
 
 .review-card {
     background: #FFFFFF;
-    border: 1px solid #E5E7EB;
-    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: 24px;
     padding: 40px;
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
 }
 
 .review-title {
@@ -620,8 +620,8 @@ label {
     border-radius: 24px;
     padding: 48px 32px;
     text-align: center;
-    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
-    border: 1px solid #F3F4F6;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
 .success-icon-large {
