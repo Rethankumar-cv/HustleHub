@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '../components/AppLayout';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import ReviewModal from '../components/ReviewModal';
+import ViewReviewsModal from '../components/ViewReviewsModal';
 import './ProfilePage.css';
 
 const SKILL_OPTIONS = [
@@ -49,6 +51,14 @@ export default function ProfilePage() {
     const [editForm, setEditForm] = useState({ full_name: '', bio: '', skills: [] });
     const [saving, setSaving] = useState(false);
     const [saveMsg, setSaveMsg] = useState('');
+
+    // Review Modal
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [gigToReview, setGigToReview] = useState(null);
+    const [submittingReview, setSubmittingReview] = useState(false);
+
+    // View Reviews Modal
+    const [viewReviewsOpen, setViewReviewsOpen] = useState(false);
 
     const showToast = (msg) => {
         setToast(msg); setTimeout(() => setToast(''), 4000);
@@ -169,6 +179,12 @@ export default function ProfilePage() {
                         hustle_score: (acceptorData.hustle_score || 100) + 50,
                     }).eq('id', gig.accepted_by);
                 }
+
+                // If poster completed it, let them review the worker
+                if (gig.posted_by === user.id) {
+                    setGigToReview(gig);
+                    setReviewModalOpen(true);
+                }
             }
             // Log activity
             await supabase.from('activity_log').insert({
@@ -183,6 +199,56 @@ export default function ProfilePage() {
             showToast('Failed to complete gig.');
         }
         setCompleting(null);
+    };
+
+    // Submit review and update worker's average rating
+    const handleReviewSubmit = async ({ rating, reviewText }) => {
+        setSubmittingReview(true);
+        const workerId = gigToReview.accepted_by;
+
+        const { error: reviewErr } = await supabase.from('reviews').insert({
+            gig_id: gigToReview.id,
+            reviewer_id: user.id,
+            reviewed_user_id: workerId,
+            rating,
+            review_text: reviewText || null
+        });
+
+        if (reviewErr) {
+            console.error('Review insert error:', reviewErr);
+            showToast('❌ Failed to submit review. You may have already reviewed this gig.');
+            setSubmittingReview(false);
+            setReviewModalOpen(false);
+            setGigToReview(null);
+            return;
+        }
+
+        // Recalculate average rating
+        const { data: userData } = await supabase
+            .from('users')
+            .select('average_rating, total_reviews')
+            .eq('id', workerId)
+            .single();
+
+        if (userData) {
+            const oldAvg = userData.average_rating || 0;
+            const oldTotal = userData.total_reviews || 0;
+            const newAvg = ((oldAvg * oldTotal) + rating) / (oldTotal + 1);
+
+            await supabase
+                .from('users')
+                .update({
+                    average_rating: newAvg,
+                    total_reviews: oldTotal + 1
+                })
+                .eq('id', workerId);
+        }
+
+        showToast('⭐ Review submitted successfully!');
+        setSubmittingReview(false);
+        setReviewModalOpen(false);
+        setGigToReview(null);
+        await loadGigs();
     };
 
     const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Hustler';
@@ -273,6 +339,16 @@ export default function ProfilePage() {
                         <div className="pf-name-row">
                             <h1 className="pf-name">{displayName}</h1>
                             <span className="pf-handle">{handle}</span>
+
+                            {profile?.total_reviews > 0 && (
+                                <button className="pf-rating-badge" onClick={() => setViewReviewsOpen(true)}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B" stroke="#F59E0B" strokeWidth="2">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                                    </svg>
+                                    <span>{profile.average_rating.toFixed(1)}</span>
+                                    <span className="pf-rating-count">({profile.total_reviews} reviews)</span>
+                                </button>
+                            )}
                         </div>
 
                         <p className={`pf-bio${!profile?.bio ? ' pf-bio--empty' : ''}`}>
@@ -578,6 +654,24 @@ export default function ProfilePage() {
                     </div>
                 </div>
             )}
+
+            {/* Review Modal */}
+            <ReviewModal
+                isOpen={reviewModalOpen}
+                onClose={() => { setReviewModalOpen(false); setGigToReview(null); }}
+                onSubmit={handleReviewSubmit}
+                gig={gigToReview}
+                workerName={gigToReview?.acceptor?.full_name}
+                isSubmitting={submittingReview}
+            />
+
+            {/* View Reviews Modal */}
+            <ViewReviewsModal
+                isOpen={viewReviewsOpen}
+                onClose={() => setViewReviewsOpen(false)}
+                userId={user.id}
+                userName={displayName}
+            />
         </AppLayout>
     );
 }

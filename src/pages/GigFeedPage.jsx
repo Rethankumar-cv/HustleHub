@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '../components/AppLayout';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import ReviewModal from '../components/ReviewModal';
 import './GigFeedPage.css';
 
 const STATUS_COLORS = {
@@ -72,6 +73,11 @@ export default function GigFeedPage() {
     const [gigToAccept, setGigToAccept] = useState(null);
     const [toastMessage, setToastMessage] = useState('');
     const [toastType, setToastType] = useState('success'); // success | error
+
+    // Review Modal States
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [gigToReview, setGigToReview] = useState(null);
+    const [submittingReview, setSubmittingReview] = useState(false);
 
     // ─────────────────────────────────────────
     // FETCH GIGS
@@ -292,7 +298,7 @@ export default function GigFeedPage() {
             if (gig.accepted_by) {
                 const { data: u } = await supabase
                     .from('users')
-                    .select('gigs_completed_count, hustle_score')
+                    .select('gigs_completed_count, hustle_score, full_name')
                     .eq('id', gig.accepted_by)
                     .single();
 
@@ -301,6 +307,12 @@ export default function GigFeedPage() {
                         gigs_completed_count: (u.gigs_completed_count || 0) + 1,
                         hustle_score: (u.hustle_score || 100) + 50,
                     }).eq('id', gig.accepted_by);
+
+                    // Trigger review modal for the poster
+                    if (gig.posted_by === user.id) {
+                        setGigToReview({ ...gig, acceptorName: u.full_name });
+                        setReviewModalOpen(true);
+                    }
                 }
             }
 
@@ -319,6 +331,54 @@ export default function GigFeedPage() {
             showToast('Failed to complete gig. Try again.', 'error');
         }
         setCompleting(null);
+    };
+
+    // ─────────────────────────────────────────
+    // REVIEW SUBMISSION
+    // ─────────────────────────────────────────
+    const handleReviewSubmit = async ({ rating, reviewText }) => {
+        setSubmittingReview(true);
+        const workerId = gigToReview.accepted_by;
+
+        const { error: reviewErr } = await supabase.from('reviews').insert({
+            gig_id: gigToReview.id,
+            reviewer_id: user.id,
+            reviewed_user_id: workerId,
+            rating,
+            review_text: reviewText || null
+        });
+
+        if (reviewErr) {
+            console.error('Review insert error:', reviewErr);
+            showToast('❌ Failed to submit review.', 'error');
+            setSubmittingReview(false);
+            setReviewModalOpen(false);
+            setGigToReview(null);
+            return;
+        }
+
+        const { data: userData } = await supabase
+            .from('users')
+            .select('average_rating, total_reviews')
+            .eq('id', workerId)
+            .single();
+
+        if (userData) {
+            const oldAvg = userData.average_rating || 0;
+            const oldTotal = userData.total_reviews || 0;
+            const newAvg = ((oldAvg * oldTotal) + rating) / (oldTotal + 1);
+
+            await supabase.from('users').update({
+                average_rating: newAvg,
+                total_reviews: oldTotal + 1
+            }).eq('id', workerId);
+        }
+
+        showToast('⭐ Review submitted!');
+        setSubmittingReview(false);
+        setReviewModalOpen(false);
+        setGigToReview(null);
+        await fetchGigs();
     };
 
     const toggleSkillFilter = (skill) => {
@@ -711,6 +771,15 @@ export default function GigFeedPage() {
                     </div>
                 </>
             )}
+
+            <ReviewModal
+                isOpen={reviewModalOpen}
+                onClose={() => { setReviewModalOpen(false); setGigToReview(null); }}
+                onSubmit={handleReviewSubmit}
+                gig={gigToReview}
+                workerName={gigToReview?.acceptorName}
+                isSubmitting={submittingReview}
+            />
         </AppLayout>
     );
 }

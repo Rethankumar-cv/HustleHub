@@ -97,6 +97,34 @@
     font-weight: var(--font-weight-medium);
 }
 
+.pf-rating-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+    font-size: 13px;
+    font-weight: var(--font-weight-bold);
+    color: #B45309;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    margin-left: var(--space-2);
+}
+
+.pf-rating-badge:hover {
+    background: #FEF3C7;
+    transform: translateY(-1px);
+}
+
+.pf-rating-count {
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    color: #D97706;
+    margin-left: 2px;
+}
+
 .pf-bio {
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);

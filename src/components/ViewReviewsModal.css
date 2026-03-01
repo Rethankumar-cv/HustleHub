@@ -1,0 +1,160 @@
+.vr-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+    animation: vrFadeIn 0.2s ease-out;
+}
+
+@keyframes vrFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.vr-modal-content {
+    background: #ffffff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: vrSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+@keyframes vrSlideUp {
+    from {
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+.vr-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.vr-modal-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+}
+
+.vr-modal-close {
+    background: none;
+    border: none;
+    font-size: 26px;
+    color: #9CA3AF;
+    cursor: pointer;
+    line-height: 1;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.vr-modal-close:hover {
+    background: #F3F4F6;
+    color: #111827;
+}
+
+.vr-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.vr-loading,
+.vr-empty {
+    text-align: center;
+    padding: 40px 0;
+    color: #6B7280;
+    font-size: 15px;
+}
+
+.vr-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.vr-card {
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.vr-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.vr-reviewer-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vr-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #E0E7FF;
+    color: #4F46E5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.vr-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.vr-date {
+    font-size: 12px;
+    color: #9CA3AF;
+}
+
+.vr-stars {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 8px;
+}
+
+.vr-text {
+    font-size: 14px;
+    color: #4B5563;
+    line-height: 1.5;
+    margin: 0;
+}
