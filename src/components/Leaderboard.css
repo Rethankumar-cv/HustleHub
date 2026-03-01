@@ -1,0 +1,167 @@
+.leaderboard {
+    background: var(--color-surface-secondary);
+}
+
+.lb-wrapper {
+    max-width: 720px;
+    margin: 0 auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+/* Header row */
+.lb-header {
+    display: flex;
+    align-items: center;
+    padding: 14px var(--space-6);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-secondary);
+}
+
+.lb-col {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--color-text-faint);
+}
+
+.rank-col {
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.student-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.stat-col {
+    width: 110px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* Rows */
+.lb-row {
+    display: flex;
+    align-items: center;
+    padding: 16px var(--space-6);
+    border-bottom: 1px solid var(--color-border-subtle);
+    transition: background var(--transition-fast);
+}
+
+.lb-row:last-child {
+    border-bottom: none;
+}
+
+.lb-row:hover {
+    background: var(--color-surface-secondary);
+}
+
+.lb-row--top {
+    background: var(--color-primary-light);
+}
+
+.lb-row--top:hover {
+    background: var(--color-primary-subtle);
+}
+
+/* Rank number */
+.rank-num {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 15px;
+    font-weight: var(--font-weight-bold);
+    min-width: 24px;
+}
+
+/* Avatar */
+.lb-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: var(--font-weight-bold);
+    background: var(--color-primary-subtle);
+    color: var(--color-primary);
+    border: 2px solid var(--color-surface);
+    box-shadow: 0 0 0 1.5px var(--rank-color, var(--color-border));
+    flex-shrink: 0;
+}
+
+.lb-student-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.lb-name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lb-college {
+    font-size: 11px;
+    color: var(--color-text-faint);
+}
+
+/* Stat */
+.lb-stat {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    display: block;
+    text-align: center;
+}
+
+/* Footer */
+.lb-footer {
+    padding: 16px var(--space-6);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    background: var(--color-surface-secondary);
+}
+
+.lb-viewall {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-primary);
+    transition: gap var(--transition-fast);
+}
+
+.lb-viewall:hover {
+    gap: var(--space-3);
+}
+
+@media (max-width: 600px) {
+    .stat-col {
+        width: 70px;
+    }
+
+    .lb-header,
+    .lb-row {
+        padding: 12px var(--space-4);
+    }
+
+    .lb-college {
+        display: none;
+    }
+}

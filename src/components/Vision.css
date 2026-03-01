@@ -1,0 +1,100 @@
+.vision {
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border-subtle);
+}
+
+.vision__inner {
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.vision__icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-lg);
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto var(--space-5);
+}
+
+.vision__title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    color: var(--color-text-primary);
+    letter-spacing: -0.03em;
+    margin-bottom: var(--space-6);
+    margin-top: var(--space-3);
+}
+
+.vision__body {
+    font-size: 17px;
+    color: var(--color-text-muted);
+    line-height: var(--line-height-relaxed);
+    margin-bottom: var(--space-5);
+}
+
+.vision__body:last-of-type {
+    margin-bottom: var(--space-12);
+}
+
+/* Metrics */
+.vision__metrics {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-8);
+    background: var(--color-surface-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8) var(--space-10);
+    flex-wrap: wrap;
+}
+
+.vision-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.vision-metric__num {
+    font-size: 32px;
+    font-weight: var(--font-weight-extrabold);
+    color: var(--color-primary);
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+
+.vision-metric__label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    max-width: 120px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.vision-metric__divider {
+    width: 1px;
+    height: 40px;
+    background: var(--color-border);
+    flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+    .vision__title {
+        font-size: 28px;
+    }
+
+    .vision__metrics {
+        gap: var(--space-6);
+    }
+
+    .vision-metric__divider {
+        display: none;
+    }
+}
